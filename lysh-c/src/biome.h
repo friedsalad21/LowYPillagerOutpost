@@ -60,7 +60,7 @@ typedef struct {
     lysh_dblnoise temperature;   /* minecraft:temperature  (shifted_noise xz 0.25, y 0) */
     lysh_dblnoise vegetation;    /* minecraft:vegetation   (shifted_noise xz 0.25, y 0) */
     const void *tree;            /* 选定的 cubiomes 参数树（按版本，见 biome.c）；NULL = 用 mc_rtree */
-    int mc_rtree;                /* 1 = 搜 biome_tree_263.h（MC RTree 原样移植） */
+    int mc_rtree;                /* 262 / 263 = 搜游戏导出的 RTree（MC 搜索原样移植）；0 = cubiomes 树 */
 } lysh_biome;
 
 /* 参数树的版本选择。cubiomes 的映射（biomenoise.c climateToBiome）：
@@ -78,7 +78,8 @@ enum {
     LYSH_BIOME_TREE_1_19_4 = 4,     /* btree19 : 1.19.4 .. 1.20.5 */
     LYSH_BIOME_TREE_1_20_6 = 5,     /* btree20 : 1.20.6 .. 1.21.3 */
     LYSH_BIOME_TREE_1_21_4 = 6,     /* btree21wd: 1.21.4 */
-    LYSH_BIOME_TREE_26_3   = 7      /* 26.3：游戏里直接导出的 RTree（biome_tree_263.h），加了 dappled_forest */
+    LYSH_BIOME_TREE_26_3   = 7,     /* 26.3：游戏里直接导出的 RTree（biome_tree_263.h），加了 dappled_forest */
+    LYSH_BIOME_TREE_26_2_MC = 8     /* 26.2：同上（biome_tree_262mc.h）；比 cubiomes btree262 更准 */
 };
 
 void lysh_biome_init(lysh_biome *b, uint64_t world_seed, int large_biomes, int tree_sel);

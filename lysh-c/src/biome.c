@@ -96,10 +96,22 @@ static int tree_biome(const lysh_biome_tree *bt, const uint64_t np[6]) {
 #include "biome_tree_21wd.h"
 #include "biome_tree_263.h"
 
-/* 26.3 的树：`Climate.RTree.SubTree.search` 逐行移植（candidate 初值 = null，
- * 即 lastResult 为空的那次查询 —— 与 cubiomes 的 alt=0、ds=-1 同一口径）。 */
-static long long rt263_dist(int node, const long long t[7]) {
-    const int32_t *p = rtree263_params[node];
+#include "biome_tree_262mc.h"
+
+/* 26.2 / 26.3：游戏里导出的 `Climate.RTree`，搜索是 `Climate.RTree.SubTree.search` 逐行移植
+ * （candidate 初值 = null，即 lastResult 为空的那次查询 —— 与 cubiomes 的 alt=0、ds=-1 同一口径）。
+ * 26.2 也走这里而不是 cubiomes 的 btree262：实测 200k 点里 btree262 有 3 个点与游戏不同。 */
+typedef struct {
+    const int32_t (*params)[14];
+    const int16_t *leaf;
+    const uint16_t *count, *first, *kids;
+} lysh_mc_rtree;
+
+static const lysh_mc_rtree MC_RTREE_262 = { rtree262_params, rtree262_leaf, rtree262_count, rtree262_first, rtree262_kids };
+static const lysh_mc_rtree MC_RTREE_263 = { rtree263_params, rtree263_leaf, rtree263_count, rtree263_first, rtree263_kids };
+
+static long long rt_dist(const lysh_mc_rtree *rt, int node, const long long t[7]) {
+    const int32_t *p = rt->params[node];
     long long ds = 0;
     for (int i = 0; i < 7; i++) {
         long long a = t[i] - p[2 * i + 1], b = p[2 * i] - t[i];
@@ -109,15 +121,15 @@ static long long rt263_dist(int node, const long long t[7]) {
     return ds;
 }
 
-static int rt263_search(int node, const long long t[7], int cand) {
-    long long min_d = cand < 0 ? LLONG_MAX : rt263_dist(cand, t);
+static int rt_search(const lysh_mc_rtree *rt, int node, const long long t[7], int cand) {
+    long long min_d = cand < 0 ? LLONG_MAX : rt_dist(rt, cand, t);
     int closest = cand;
-    for (int k = 0; k < rtree263_count[node]; k++) {
-        int child = rtree263_kids[rtree263_first[node] + k];
-        long long cd = rt263_dist(child, t);
+    for (int k = 0; k < rt->count[node]; k++) {
+        int child = rt->kids[rt->first[node] + k];
+        long long cd = rt_dist(rt, child, t);
         if (min_d > cd) {
-            int leaf = rtree263_leaf[child] >= 0 ? child : rt263_search(child, t, closest);
-            long long ld = child == leaf ? cd : rt263_dist(leaf, t);
+            int leaf = rt->leaf[child] >= 0 ? child : rt_search(rt, child, t, closest);
+            long long ld = child == leaf ? cd : rt_dist(rt, leaf, t);
             if (min_d > ld) { min_d = ld; closest = leaf; }
         }
     }
@@ -156,7 +168,7 @@ void lysh_biome_init(lysh_biome *b, uint64_t world_seed, int large_biomes, int t
     lysh_dblnoise_from_seed_id(&b->vegetation, world_seed,
                                large_biomes ? "minecraft:vegetation_large"
                                             : "minecraft:vegetation");
-    b->mc_rtree = tree_sel == LYSH_BIOME_TREE_26_3;
+    b->mc_rtree = tree_sel == LYSH_BIOME_TREE_26_3 ? 263 : tree_sel == LYSH_BIOME_TREE_26_2_MC ? 262 : 0;
     switch (tree_sel) {
         case LYSH_BIOME_TREE_1_18:   b->tree = &LYSH_TREE_18;  break;
         case LYSH_BIOME_TREE_1_21_5: b->tree = &LYSH_TREE_215; break;
@@ -164,7 +176,8 @@ void lysh_biome_init(lysh_biome *b, uint64_t world_seed, int large_biomes, int t
         case LYSH_BIOME_TREE_1_19_4: b->tree = &LYSH_TREE_19;  break;
         case LYSH_BIOME_TREE_1_20_6: b->tree = &LYSH_TREE_20;  break;
         case LYSH_BIOME_TREE_1_21_4: b->tree = &LYSH_TREE_21WD; break;
-        case LYSH_BIOME_TREE_26_3:   b->tree = NULL; break;
+        case LYSH_BIOME_TREE_26_3:
+        case LYSH_BIOME_TREE_26_2_MC: b->tree = NULL; break;
         default:                     b->tree = &LYSH_TREE_262; break;
     }
 }
@@ -207,7 +220,8 @@ int lysh_biome_at(const lysh_biome *b, const lysh_terrain *t, int x, int y, int 
     if (b->mc_rtree) {
         long long t7[7] = { (long long)np[0], (long long)np[1], (long long)np[2],
                             (long long)np[3], (long long)np[4], (long long)np[5], 0 };
-        winner = rtree263_leaf[rt263_search(0, t7, -1)];
+        const lysh_mc_rtree *rt = b->mc_rtree == 263 ? &MC_RTREE_263 : &MC_RTREE_262;
+        winner = rt->leaf[rt_search(rt, 0, t7, -1)];
     } else {
         winner = tree_biome((const lysh_biome_tree *)b->tree, np);
     }

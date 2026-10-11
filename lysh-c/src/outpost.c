@@ -13,7 +13,7 @@ static const char *const VERSION_NAMES[LYSH_OP_V_N] = {
 static const int VERSION_TREE[LYSH_OP_V_N] = {
     LYSH_BIOME_TREE_1_18, LYSH_BIOME_TREE_1_19_2, LYSH_BIOME_TREE_1_19_4,
     LYSH_BIOME_TREE_1_20_6, LYSH_BIOME_TREE_1_21_4, LYSH_BIOME_TREE_1_21_5,
-    LYSH_BIOME_TREE_26_2, LYSH_BIOME_TREE_26_3
+    LYSH_BIOME_TREE_26_2_MC, LYSH_BIOME_TREE_26_3
 };
 
 const char *lysh_outpost_version_name(int v) {
