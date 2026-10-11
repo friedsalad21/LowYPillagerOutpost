@@ -82,6 +82,7 @@ add_library(lysh_core STATIC
   src/phase2.c
   src/eval.c
   src/search.c
+  src/outpost.c
 )
 target_include_directories(lysh_core PUBLIC src)
 

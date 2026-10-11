@@ -42,6 +42,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "eval.h"
 #include "noise.h"
@@ -447,6 +448,94 @@ static int cmd_hut(int argc, char **argv) {
     return r.ok ? 0 : 1;
 }
 
+/* ---- pillager outposts (src/outpost.c) ----
+ *   lysh outpost --seed S [--version V] [--regions N | --rx0 A --rx1 B --rz0 C --rz1 D]
+ *                [--max-y M] [--threads T] [--dump]
+ * Default: scan, print hits lowest first as `/tp x y z` with y = bounding-box bottom.
+ * --dump: every candidate, single-threaded, oracle format (cx cz status [h ctr biome piece bbox]). */
+#include "outpost.h"
+static int cmd_outpost(int argc, char **argv) {
+    uint64_t seed = 0;
+    int have_seed = 0, version = LYSH_OP_V_26_3, threads = 0, dump = 0, max_y = INT_MAX;
+    int rx0 = INT_MIN, rx1 = INT_MIN, rz0 = INT_MIN, rz1 = INT_MIN;
+    for (int i = 0; i < argc; i++) {
+        const char *a = argv[i];
+        const char *val = (i + 1 < argc) ? argv[i + 1] : NULL;
+#define NEED() do { if (!val) { fprintf(stderr, "lysh: %s needs a value\n", a); return 2; } i++; } while (0)
+        if (!strcmp(a, "--seed")) { NEED(); seed = strtoull(val, NULL, 10); have_seed = 1; }
+        else if (!strcmp(a, "--version")) { NEED(); version = lysh_outpost_version_parse(val); if (version < 0) { fprintf(stderr, "lysh: bad --version %s\n", val); return 2; } }
+        else if (!strcmp(a, "--regions")) { NEED(); int n = atoi(val); rx0 = rz0 = -n; rx1 = rz1 = n; }
+        else if (!strcmp(a, "--rx0")) { NEED(); rx0 = atoi(val); }
+        else if (!strcmp(a, "--rx1")) { NEED(); rx1 = atoi(val); }
+        else if (!strcmp(a, "--rz0")) { NEED(); rz0 = atoi(val); }
+        else if (!strcmp(a, "--rz1")) { NEED(); rz1 = atoi(val); }
+        else if (!strcmp(a, "--max-y")) { NEED(); max_y = atoi(val); }
+        else if (!strcmp(a, "--threads")) { NEED(); threads = atoi(val); }
+        else if (!strcmp(a, "--dump")) { dump = 1; }
+        else { fprintf(stderr, "lysh: unknown option %s\n", a); return 2; }
+#undef NEED
+    }
+    if (!have_seed || rx0 == INT_MIN || rx1 == INT_MIN || rz0 == INT_MIN || rz1 == INT_MIN) {
+        fprintf(stderr, "lysh outpost: need --seed and --regions N or --rx0/--rx1/--rz0/--rz1\n");
+        return 2;
+    }
+    if (dump) {
+        static const char *const ST[] = { "OK", "freq", "excl", "prefilter", "biome", "y" };
+        lysh_search_ctx ctx;
+        lysh_outpost_ctx_init(&ctx, seed, version);
+        for (int rz = rz0; rz < rz1; rz++)
+            for (int rx = rx0; rx < rx1; rx++) {
+                lysh_outpost_result r;
+                lysh_outpost_eval(&ctx, version, rx, rz, max_y, &r);
+                if (r.reject != LYSH_OP_OK) { printf("%d %d %s\n", r.cx, r.cz, ST[r.reject]); continue; }
+                printf("%d %d OK %d %d,%d %d %d %d rot=%d plates=%d%d%d h=%d,%d,%d\n", r.cx, r.cz, r.h_center,
+                       r.ctr_x, r.ctr_z, r.biome, r.piece_min_y, r.bbox_min_y, r.rot,
+                       r.plate_ok[0], r.plate_ok[1], r.plate_ok[2], r.h_entry[0], r.h_entry[1], r.h_entry[2]);
+            }
+        lysh_search_ctx_free(&ctx);
+        return 0;
+    }
+    lysh_outpost_session *s = lysh_outpost_session_open(seed, version, threads);
+    if (!s) { fprintf(stderr, "lysh outpost: session open failed\n"); return 1; }
+    static lysh_outpost_result hits[100000];
+    lysh_outpost_scan_out out;
+    memset(&out, 0, sizeof(out));
+    out.hits = hits;
+    out.hits_cap = (int)(sizeof(hits) / sizeof(hits[0]));
+    struct timespec t0, t1;
+    timespec_get(&t0, TIME_UTC);
+    lysh_outpost_session_band(s, rx0, rx1, rz0, rz1, max_y, &out);
+    timespec_get(&t1, TIME_UTC);
+    double sec = (double)(t1.tv_sec - t0.tv_sec) + (t1.tv_nsec - t0.tv_nsec) / 1e9;
+    lysh_outpost_session_free(s);
+    for (int i = 0; i < out.hits_written; i++)
+        printf("/tp %d %d %d   (lowest piece %d, base %d)\n", hits[i].ctr_x, hits[i].bbox_min_y, hits[i].ctr_z,
+               hits[i].piece_min_y, hits[i].base_y);
+    fprintf(stderr, "[outpost] version %s  regions %lld  freq %lld  village %lld  prefilter %lld  biome %lld  y %lld  hits %lld  wall %.2fs\n",
+            lysh_outpost_version_name(version), out.scanned, out.counts[LYSH_OP_REJECT_FREQ],
+            out.counts[LYSH_OP_REJECT_VILLAGE], out.counts[LYSH_OP_REJECT_PREFILTER],
+            out.counts[LYSH_OP_REJECT_BIOME], out.counts[LYSH_OP_REJECT_Y], out.counts[LYSH_OP_OK], sec);
+    return 0;
+}
+
+/* lysh biomes --seed S [--version V] < "x y z" lines  ->  "x y z id" (cubiomes ids; oracle diffs) */
+static int cmd_biomes(int argc, char **argv) {
+    uint64_t seed = 0;
+    int version = LYSH_OP_V_26_3;
+    for (int i = 0; i + 1 < argc; i += 2) {
+        if (!strcmp(argv[i], "--seed")) seed = strtoull(argv[i + 1], NULL, 10);
+        else if (!strcmp(argv[i], "--version")) version = lysh_outpost_version_parse(argv[i + 1]);
+    }
+    if (version < 0) { fprintf(stderr, "lysh: bad --version\n"); return 2; }
+    lysh_search_ctx ctx;
+    lysh_outpost_ctx_init(&ctx, seed, version);
+    int x, y, z;
+    while (scanf("%d %d %d", &x, &y, &z) == 3)
+        printf("%d %d %d %d\n", x, y, z, lysh_biome_at(&ctx.biome, &ctx.p2.terrain, x, y, z, NULL));
+    lysh_search_ctx_free(&ctx);
+    return 0;
+}
+
 int main(int argc, char **argv) {
     if (argc >= 2 && !strcmp(argv[1], "selftest")) {
         if (argc < 3) { usage(); return 2; }
@@ -457,6 +546,12 @@ int main(int argc, char **argv) {
     }
     if (argc >= 2 && !strcmp(argv[1], "hut")) {
         return cmd_hut(argc - 2, argv + 2);
+    }
+    if (argc >= 2 && !strcmp(argv[1], "biomes")) {
+        return cmd_biomes(argc - 2, argv + 2);
+    }
+    if (argc >= 2 && !strcmp(argv[1], "outpost")) {
+        return cmd_outpost(argc - 2, argv + 2);
     }
     usage();
     return argc == 1 ? 0 : 2;

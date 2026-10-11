@@ -85,4 +85,13 @@ int lysh_scan_linear(const lysh_scan_opts *o, long long n, lysh_scan_result *res
 
 int lysh_cpu_count(void);
 
+/* 极简线程原语（search.c 实现；outpost.c 复用）。handle 用 void* 存，免得头文件引 windows.h。 */
+typedef struct {
+    void (*fn)(void *);
+    void *arg;
+    void *handle;
+} lysh_thread;
+int  lysh_thread_start(lysh_thread *t, void (*fn)(void *), void *arg);
+void lysh_thread_join(lysh_thread *t);
+
 #endif /* LYSH_SEARCH_H */

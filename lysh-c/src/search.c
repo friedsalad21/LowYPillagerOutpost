@@ -45,15 +45,7 @@ static double lysh_now_ms(void) {
 /* ------------------------------------------------------------------ */
 /* 极简线程抽象（只需要"创建 + 等待"两个原语，避免引入依赖）              */
 /* ------------------------------------------------------------------ */
-typedef struct {
-    void (*fn)(void *);
-    void *arg;
-#if defined(_WIN32)
-    HANDLE handle;
-#else
-    pthread_t handle;
-#endif
-} lysh_thread;
+/* lysh_thread 定义在 search.h（outpost.c 也用这两个原语） */
 
 #if defined(_WIN32)
 static DWORD WINAPI thread_trampoline(LPVOID p) {
@@ -61,13 +53,13 @@ static DWORD WINAPI thread_trampoline(LPVOID p) {
     t->fn(t->arg);
     return 0;
 }
-static int thread_start(lysh_thread *t, void (*fn)(void *), void *arg) {
+int lysh_thread_start(lysh_thread *t, void (*fn)(void *), void *arg) {
     t->fn = fn;
     t->arg = arg;
     t->handle = CreateThread(NULL, 0, thread_trampoline, t, 0, NULL);
     return t->handle ? 0 : -1;
 }
-static void thread_join(lysh_thread *t) {
+void lysh_thread_join(lysh_thread *t) {
     if (t->handle) { WaitForSingleObject(t->handle, INFINITE); CloseHandle(t->handle); t->handle = NULL; }
 }
 int lysh_cpu_count(void) {
@@ -81,12 +73,12 @@ static void *thread_trampoline(void *p) {
     t->fn(t->arg);
     return NULL;
 }
-static int thread_start(lysh_thread *t, void (*fn)(void *), void *arg) {
+int lysh_thread_start(lysh_thread *t, void (*fn)(void *), void *arg) {
     t->fn = fn;
     t->arg = arg;
-    return pthread_create(&t->handle, NULL, thread_trampoline, t) == 0 ? 0 : -1;
+    return pthread_create((pthread_t *)&t->handle, NULL, thread_trampoline, t) == 0 ? 0 : -1;
 }
-static void thread_join(lysh_thread *t) { pthread_join(t->handle, NULL); }
+void lysh_thread_join(lysh_thread *t) { pthread_join(*(pthread_t *)&t->handle, NULL); }
 int lysh_cpu_count(void) {
     long n = sysconf(_SC_NPROCESSORS_ONLN);
     return n > 0 ? (int)n : 1;
@@ -230,7 +222,7 @@ int lysh_scan_rect(const lysh_scan_opts *o,
         worker_run(&ws[0]);
     } else {
         for (int t = 0; t < nthreads; t++) {
-            if (thread_start(&ts[t], worker_run, &ws[t]) != 0) {
+            if (lysh_thread_start(&ts[t], worker_run, &ws[t]) != 0) {
                 worker_run(&ws[t]);          /* 起不来就在本线程跑掉，保证结果正确 */
             } else {
                 spawned[t] = 1;
@@ -238,7 +230,7 @@ int lysh_scan_rect(const lysh_scan_opts *o,
         }
     }
     for (int t = 0; t < nthreads; t++) {
-        if (spawned[t]) thread_join(&ts[t]);
+        if (spawned[t]) lysh_thread_join(&ts[t]);
         res->scanned += ws[t].local.scanned;
         res->accepted += ws[t].local.accepted;
         res->reached_ladder += ws[t].local.reached_ladder;

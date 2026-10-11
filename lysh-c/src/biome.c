@@ -18,6 +18,8 @@
  */
 #include "biome.h"
 
+#include <limits.h>
+
 #include "column_top.h"
 #include "mcmath.h"
 
@@ -88,6 +90,39 @@ static int tree_biome(const lysh_biome_tree *bt, const uint64_t np[6]) {
 #include "biome_tree_18.h"
 #include "biome_tree_215.h"
 #include "biome_tree_262.h"
+#include "biome_tree_192.h"
+#include "biome_tree_19.h"
+#include "biome_tree_20.h"
+#include "biome_tree_21wd.h"
+#include "biome_tree_263.h"
+
+/* 26.3 的树：`Climate.RTree.SubTree.search` 逐行移植（candidate 初值 = null，
+ * 即 lastResult 为空的那次查询 —— 与 cubiomes 的 alt=0、ds=-1 同一口径）。 */
+static long long rt263_dist(int node, const long long t[7]) {
+    const int32_t *p = rtree263_params[node];
+    long long ds = 0;
+    for (int i = 0; i < 7; i++) {
+        long long a = t[i] - p[2 * i + 1], b = p[2 * i] - t[i];
+        long long d = a > 0 ? a : (b > 0 ? b : 0);
+        ds += d * d;
+    }
+    return ds;
+}
+
+static int rt263_search(int node, const long long t[7], int cand) {
+    long long min_d = cand < 0 ? LLONG_MAX : rt263_dist(cand, t);
+    int closest = cand;
+    for (int k = 0; k < rtree263_count[node]; k++) {
+        int child = rtree263_kids[rtree263_first[node] + k];
+        long long cd = rt263_dist(child, t);
+        if (min_d > cd) {
+            int leaf = rtree263_leaf[child] >= 0 ? child : rt263_search(child, t, closest);
+            long long ld = child == leaf ? cd : rt263_dist(leaf, t);
+            if (min_d > ld) { min_d = ld; closest = leaf; }
+        }
+    }
+    return closest;
+}
 
 #define LYSH_TREE_DECL(name)                                              \
     { name##_steps, &name##_param[0][0], name##_nodes, name##_order,       \
@@ -96,6 +131,10 @@ static int tree_biome(const lysh_biome_tree *bt, const uint64_t np[6]) {
 static const lysh_biome_tree LYSH_TREE_18   = LYSH_TREE_DECL(btree18);
 static const lysh_biome_tree LYSH_TREE_215  = LYSH_TREE_DECL(btree215);
 static const lysh_biome_tree LYSH_TREE_262  = LYSH_TREE_DECL(btree262);
+static const lysh_biome_tree LYSH_TREE_192  = LYSH_TREE_DECL(btree192);
+static const lysh_biome_tree LYSH_TREE_19   = LYSH_TREE_DECL(btree19);
+static const lysh_biome_tree LYSH_TREE_20   = LYSH_TREE_DECL(btree20);
+static const lysh_biome_tree LYSH_TREE_21WD = LYSH_TREE_DECL(btree21wd);
 
 /* Climate.quantizeCoord(float) = (long)(f * 10000.0f)
  * ⚠️ 乘法必须在 **float** 里做（先转 double 再乘会差 1）。 */
@@ -117,41 +156,27 @@ void lysh_biome_init(lysh_biome *b, uint64_t world_seed, int large_biomes, int t
     lysh_dblnoise_from_seed_id(&b->vegetation, world_seed,
                                large_biomes ? "minecraft:vegetation_large"
                                             : "minecraft:vegetation");
+    b->mc_rtree = tree_sel == LYSH_BIOME_TREE_26_3;
     switch (tree_sel) {
         case LYSH_BIOME_TREE_1_18:   b->tree = &LYSH_TREE_18;  break;
         case LYSH_BIOME_TREE_1_21_5: b->tree = &LYSH_TREE_215; break;
+        case LYSH_BIOME_TREE_1_19_2: b->tree = &LYSH_TREE_192; break;
+        case LYSH_BIOME_TREE_1_19_4: b->tree = &LYSH_TREE_19;  break;
+        case LYSH_BIOME_TREE_1_20_6: b->tree = &LYSH_TREE_20;  break;
+        case LYSH_BIOME_TREE_1_21_4: b->tree = &LYSH_TREE_21WD; break;
+        case LYSH_BIOME_TREE_26_3:   b->tree = NULL; break;
         default:                     b->tree = &LYSH_TREE_262; break;
     }
 }
 
 const char *lysh_biome_data_version(void) { return "26.2"; }
 
-int lysh_swamp_hut_biome_ok(const lysh_biome *b, const lysh_terrain *t,
-                            int hut_x, int hut_z,
-                            lysh_biome_height_fn height_fn, void *height_user,
-                            lysh_biome_result *out) {
-    if (out) {
-        for (int i = 0; i < 6; i++) out->target.t[i] = 0;
-        out->target.qx = out->target.qy = out->target.qz = 0;
-        out->target.occ_y = 0;
-        out->winner = -1;
-        out->ok = 0;
-    }
-    if (!out || !height_fn || !b->tree) return 0;
-
-    /* ---- Structure.onTopOfChunkCenter ---- */
-    int chunk_x = hut_x >> 4;
-    int chunk_z = hut_z >> 4;
-    int mid_x = chunk_x * 16 + 8;          /* ChunkPos.getMiddleBlockX */
-    int mid_z = chunk_z * 16 + 8;
-
-    /* getFirstOccupiedHeight(...) = getBaseHeight(WORLD_SURFACE_WG) - 1 */
-    int y = height_fn(height_user, mid_x, mid_z) - 1;
-
+int lysh_biome_at(const lysh_biome *b, const lysh_terrain *t, int x, int y, int z,
+                  long long np_out[6]) {
     /* ---- QuartPos.fromBlock ---- */
-    int qx = mid_x >> 2;
+    int qx = x >> 2;
     int qy = y >> 2;
-    int qz = mid_z >> 2;
+    int qz = z >> 2;
 
     /* ---- Climate.Sampler.sample：六个密度函数在 quart 位置求值 ---- */
     /* ShiftedNoise 的 xz_scale 是 0.25、y_scale 是 0.0，且这些噪声共用同一对 shift；
@@ -178,9 +203,49 @@ int lysh_swamp_hut_biome_ok(const lysh_biome *b, const lysh_terrain *t,
     np[4] = (uint64_t)quantize((float)depth);
     np[5] = (uint64_t)quantize((float)ti.weirdness);
 
-    int winner = tree_biome((const lysh_biome_tree *)b->tree, np);
+    int winner;
+    if (b->mc_rtree) {
+        long long t7[7] = { (long long)np[0], (long long)np[1], (long long)np[2],
+                            (long long)np[3], (long long)np[4], (long long)np[5], 0 };
+        winner = rtree263_leaf[rt263_search(0, t7, -1)];
+    } else {
+        winner = tree_biome((const lysh_biome_tree *)b->tree, np);
+    }
 
-    for (int a = 0; a < 6; a++) out->target.t[a] = (long long)np[a];
+    if (np_out) for (int a = 0; a < 6; a++) np_out[a] = (long long)np[a];
+    return winner;
+}
+
+int lysh_swamp_hut_biome_ok(const lysh_biome *b, const lysh_terrain *t,
+                            int hut_x, int hut_z,
+                            lysh_biome_height_fn height_fn, void *height_user,
+                            lysh_biome_result *out) {
+    if (out) {
+        for (int i = 0; i < 6; i++) out->target.t[i] = 0;
+        out->target.qx = out->target.qy = out->target.qz = 0;
+        out->target.occ_y = 0;
+        out->winner = -1;
+        out->ok = 0;
+    }
+    if (!out || !height_fn || (!b->tree && !b->mc_rtree)) return 0;
+
+    /* ---- Structure.onTopOfChunkCenter ---- */
+    int chunk_x = hut_x >> 4;
+    int chunk_z = hut_z >> 4;
+    int mid_x = chunk_x * 16 + 8;          /* ChunkPos.getMiddleBlockX */
+    int mid_z = chunk_z * 16 + 8;
+
+    /* getFirstOccupiedHeight(...) = getBaseHeight(WORLD_SURFACE_WG) - 1 */
+    int y = height_fn(height_user, mid_x, mid_z) - 1;
+
+    /* ---- QuartPos.fromBlock + Climate.Sampler.sample + R 树（lysh_biome_at）---- */
+    int qx = mid_x >> 2;
+    int qy = y >> 2;
+    int qz = mid_z >> 2;
+    long long np[6];
+    int winner = lysh_biome_at(b, t, mid_x, y, mid_z, np);
+
+    for (int a = 0; a < 6; a++) out->target.t[a] = np[a];
     out->target.qx = qx;
     out->target.qy = qy;
     out->target.qz = qz;

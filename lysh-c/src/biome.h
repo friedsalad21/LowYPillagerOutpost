@@ -59,7 +59,8 @@
 typedef struct {
     lysh_dblnoise temperature;   /* minecraft:temperature  (shifted_noise xz 0.25, y 0) */
     lysh_dblnoise vegetation;    /* minecraft:vegetation   (shifted_noise xz 0.25, y 0) */
-    const void *tree;            /* 选定的 cubiomes 参数树（按版本，见 biome.c） */
+    const void *tree;            /* 选定的 cubiomes 参数树（按版本，见 biome.c）；NULL = 用 mc_rtree */
+    int mc_rtree;                /* 1 = 搜 biome_tree_263.h（MC RTree 原样移植） */
 } lysh_biome;
 
 /* 参数树的版本选择。cubiomes 的映射（biomenoise.c climateToBiome）：
@@ -71,7 +72,13 @@ typedef struct {
 enum {
     LYSH_BIOME_TREE_1_18   = 0,
     LYSH_BIOME_TREE_1_21_5 = 1,
-    LYSH_BIOME_TREE_26_2   = 2      /* 默认 */
+    LYSH_BIOME_TREE_26_2   = 2,     /* 默认 */
+    /* 以下供掠夺者前哨站搜索（src/outpost.c）细分 1.19 ~ 1.21.4；cubiomes 的映射见各表头部 */
+    LYSH_BIOME_TREE_1_19_2 = 3,     /* btree192: 1.19.2 .. 1.19.3 */
+    LYSH_BIOME_TREE_1_19_4 = 4,     /* btree19 : 1.19.4 .. 1.20.5 */
+    LYSH_BIOME_TREE_1_20_6 = 5,     /* btree20 : 1.20.6 .. 1.21.3 */
+    LYSH_BIOME_TREE_1_21_4 = 6,     /* btree21wd: 1.21.4 */
+    LYSH_BIOME_TREE_26_3   = 7      /* 26.3：游戏里直接导出的 RTree（biome_tree_263.h），加了 dappled_forest */
 };
 
 void lysh_biome_init(lysh_biome *b, uint64_t world_seed, int large_biomes, int tree_sel);
@@ -103,6 +110,11 @@ typedef struct {
  * 用回调而不是直接吃 lysh_phase2，是为了让本层不依赖阶段 2 —— 与
  * lysh_phase2_set_column_top 的既有风格一致。 */
 typedef int (*lysh_biome_height_fn)(void *user, int x, int z);
+
+/* 方块 (x, y, z) 处的群系（MC `getNoiseBiome(QuartPos.fromBlock(x/y/z))`），返回 cubiomes 序号。
+ * np_out（可为 NULL）收到量化后的 6 维目标点。 */
+int lysh_biome_at(const lysh_biome *b, const lysh_terrain *t, int x, int y, int z,
+                  long long np_out[6]);
 
 /* 女巫小屋在 (hut_x, hut_z) 处是否位于允许的群系里。
  * hut_x/hut_z 是方块坐标（= chunkX*16）。返回 0 表示**不是**沼泽 ⇒ 阶段 2 之前就该拒。
