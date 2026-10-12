@@ -22,6 +22,7 @@ echo "==> Java ($VERSION)"
 rm -rf "$B" && mkdir -p "$B/classes/native" dist
 javac --release 17 -encoding UTF-8 -nowarn -d "$B/classes" $(find app/src/main/java -name '*.java')
 cp -r app/src/main/resources/. "$B/classes/"
+cp LICENSE "$B/classes/LICENSE.txt"
 cp lysh-c/build-win/lysh.dll lysh-c/build/lysh.so "$B/classes/native/"
 printf 'Manifest-Version: 1.0\nMain-Class: project.Launcher\nEnable-Native-Access: ALL-UNNAMED\n' > "$B/MANIFEST.MF"
 rm -f dist/LowYPillagerOutpost-*.jar

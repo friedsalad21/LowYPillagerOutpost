@@ -73,7 +73,7 @@ area). The regions-32 `--dump` must still give 134 OK / 385 biome / 306 excl / 3
 
 ## Notes
 
-- the owner's prefs: lazy/minimal code, keep Windows user steps to copy-paste commands; the owner does
+- The owner's prefs: lazy/minimal code, keep Windows user steps to copy-paste commands; the owner does
   the in-game testing; use mcsrc.dev (or Vineflower locally) for Minecraft source.
 - Windows paths from the old PC (not on the server): `C:\CODE\LowYPillagerOutpost` (this repo),
   `C:\CODE\_mcdata` (scratch: decompiled 26.3 source, cubiomes tables), MSYS2 at `C:\msys64`.

@@ -269,6 +269,7 @@ if (-not $SkipCompile) {
 
 Write-Step "Copying resources (messages / icon / font)"
 Copy-Item -Path (Join-Path $resDir '*') -Destination $classes -Recurse -Force
+Copy-Item -Path (Join-Path $workspace 'LICENSE') -Destination (Join-Path $classes 'LICENSE.txt') -Force
 
 Write-Step "Writing the manifest (Main-Class + native access for JDK 24+)"
 $manifestText = @(
