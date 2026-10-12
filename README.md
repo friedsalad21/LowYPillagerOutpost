@@ -18,16 +18,36 @@ plate attaches), whichever is lower.
 
 ## Requirements
 
-### To run it (the jar from the Releases page)
+### To run it
 
-| Need | Details |
-|---|---|
-| **Java 17 or newer** | Free download: [adoptium.net](https://adoptium.net) (JRE 21 is fine). Linux: `sudo apt install openjdk-21-jre` (Ubuntu/Debian) or `sudo dnf install java-21-openjdk` (Fedora). The Java bundled with the Minecraft launcher does not count. |
-| **64-bit Windows or Linux** | The search engine inside the jar is built for x86-64 Windows and Linux only (no macOS, no ARM). |
-| **CPU with AVX2** | Any Intel/AMD CPU from about 2015 onward. |
-| **Linux only: glibc 2.34+** | Ubuntu 22.04+, Debian 12+, Fedora 35+ or newer. |
+**1. Get the jar.** On this repo's
+[Releases page](https://github.com/friedsalad21/LowYPillagerOutpost/releases), open the newest
+release and download `LowYPillagerOutpost-<version>.jar` under **Assets**.
 
-Nothing else: the C core is embedded in the jar, no extra files or installs.
+**2. Install Java 17 or newer** (free). If you already have it, skip this: type `java -version`
+in Command Prompt / a terminal, and any number 17 or higher is fine. The Java that comes with
+the Minecraft launcher does **not** count.
+
+*Windows:*
+1. Go to [adoptium.net/temurin/releases](https://adoptium.net/temurin/releases/?os=windows&arch=x64&package=jre&version=21)
+   (Windows, x64, JRE, version 21 are pre-selected).
+2. Download the **.msi** file and run it.
+3. On the "Custom Setup" screen, make sure **Add to PATH** and **Associate .jar** are both set
+   to install, so double-clicking the jar works. Then click Next / Install.
+
+Or in Command Prompt: `winget install EclipseAdoptium.Temurin.21.JRE`
+
+*Linux:*
+- Ubuntu / Debian / Mint: `sudo apt install openjdk-21-jre`
+- Fedora: `sudo dnf install java-21-openjdk`
+- Arch: `sudo pacman -S jre21-openjdk`
+
+**3. Run it.** Double-click the jar. If that opens it like a zip file or nothing happens, run
+`java -jar LowYPillagerOutpost-<version>.jar` in the folder where the jar is.
+
+**System requirements:** 64-bit Windows or Linux (no macOS, no ARM), a CPU with AVX2 (any
+Intel/AMD from about 2015 on), and on Linux glibc 2.34+ (Ubuntu 22.04+, Debian 12+, Fedora 35+).
+Nothing else: the search engine is inside the jar.
 
 ### To build it from source
 
