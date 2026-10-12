@@ -1,0 +1,2 @@
+{ "schemaVersion": 1, "id": "outpost-oracle", "version": "1.0.0", "environment": "*",
+  "entrypoints": { "main": ["local.oracle.OutpostOracle"] } }

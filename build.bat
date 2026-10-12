@@ -1,16 +1,16 @@
 @echo off
-REM Full product package: build lysh.dll (CMake/gcc) + LowYSwampHut-<version>.jar into dist\.
+REM Full product package: build lysh.dll (CMake/gcc) + LowYPillagerOutpost-<version>.jar (GUI rework pending) into dist\.
 REM Double-click this file, or run it from a console at the repository root.
 setlocal
 cd /d "%~dp0"
 
 echo ============================================
-echo  LowYSwampHut full package
+echo  LowYPillagerOutpost full package
 echo  (native DLL + Java jar -^> dist\)
 echo ============================================
 echo.
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0LowYSwampHut-main\build-dist.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0app\build-dist.ps1"
 set "EXIT_CODE=%ERRORLEVEL%"
 
 echo.

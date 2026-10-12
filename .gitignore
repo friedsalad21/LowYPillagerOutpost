@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------
 # 仓库根（C:\LowYSwampHut-main2）的忽略规则。
 #
-# 背景：`LowYSwampHut-main/.gitignore` 只覆盖它**自己那一层**（/dist/、seedCheckerLib/
+# 背景：`app/.gitignore` 只覆盖它**自己那一层**（/dist/、seedCheckerLib/
 # 等都是相对 LowYSwampHut-main 解析的），而构建产物、打包产物、日志与开发期 scratch
 # 全都落在仓库根。这份文件补上根这一层，免得清理过的东西又长回来。
 # ---------------------------------------------------------------------------
@@ -43,12 +43,19 @@ _verguard_tmp.txt
 _archive/
 
 # Gradle 全套：build-dist.ps1 用纯 javac + jar，已声明 Gradle 不是默认路径。
-LowYSwampHut-main/build.gradle
-LowYSwampHut-main/settings.gradle.kts
-LowYSwampHut-main/gradlew
-LowYSwampHut-main/gradlew.bat
-LowYSwampHut-main/gradle/
+app/build.gradle
+app/settings.gradle.kts
+app/gradlew
+app/gradlew.bat
+app/gradle/
 
 # 源码目录下那个 run.bat 是历史遗留；交付用的启动器由 build-dist.ps1 生成到 dist\run.bat。
-LowYSwampHut-main/run.bat
+app/run.bat
 /.idea/
+
+# oracle (Fabric dev server) build output and generated world
+tools/oracle-26.2/build/
+tools/oracle-26.2/.gradle/
+tools/oracle-26.2/run/*
+!tools/oracle-26.2/run/eula.txt
+!tools/oracle-26.2/run/server.properties
