@@ -16,9 +16,38 @@ structure piece. The lowest piece is either the base plate (one block below the 
 outpost centre) or one of the three terrain-following side plates (surface height where each
 plate attaches), whichever is lower.
 
+## Requirements
+
+### To run it (the jar from the Releases page)
+
+| Need | Details |
+|---|---|
+| **Java 17 or newer** | Free download: [adoptium.net](https://adoptium.net) (JRE 21 is fine). Linux: `sudo apt install openjdk-21-jre` (Ubuntu/Debian) or `sudo dnf install java-21-openjdk` (Fedora). The Java bundled with the Minecraft launcher does not count. |
+| **64-bit Windows or Linux** | The search engine inside the jar is built for x86-64 Windows and Linux only (no macOS, no ARM). |
+| **CPU with AVX2** | Any Intel/AMD CPU from about 2015 onward. |
+| **Linux only: glibc 2.34+** | Ubuntu 22.04+, Debian 12+, Fedora 35+ or newer. |
+
+Nothing else: the C core is embedded in the jar, no extra files or installs.
+
+### To build it from source
+
+**On Linux** (builds both the Windows and the Linux version):
+
+```bash
+sudo apt install build-essential cmake ninja-build mingw-w64 openjdk-21-jdk
+./build-dist.sh        # -> dist/LowYPillagerOutpost-<version>.jar
+```
+
+**On Windows**: a JDK 17+ (e.g. Temurin), [CMake](https://cmake.org), and
+[MSYS2](https://www.msys2.org) with `pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-ninja`.
+Then double-click `build.bat` (output in `dist\`).
+
+**Optional, only to re-verify against Minecraft**: Java 25 for the Fabric oracle in
+`tools/oracle-26.2` (Gradle downloads the rest itself).
+
 ## Run a search (GUI)
 
-Needs Java 17 or newer. Double-click `LowYPillagerOutpost-<version>.jar` (or
+Double-click `LowYPillagerOutpost-<version>.jar` (or
 `java -jar LowYPillagerOutpost-<version>.jar`). The C core is inside the jar (Windows x64 and
 Linux x64).
 
@@ -31,12 +60,14 @@ Linux x64).
 
 The jar also has a command-line mode: `java -jar LowYPillagerOutpost-<version>.jar --help`.
 
-Build the jar: `./build-dist.sh` on Linux (cross-compiles the Windows DLL with mingw-w64), or
-`build.bat` on Windows (MSYS2 gcc). Output goes to `dist/`.
-
 ## Run a search (C command line)
 
-Build once (see `HANDOFF.md` for Linux / Windows build commands), then:
+Build once (needs the build tools above), then:
+
+```bash
+cmake -S lysh-c -B lysh-c/build -G Ninja && cmake --build lysh-c/build   # -> lysh-c/build/lysh
+```
+
 
 ```bash
 lysh outpost --seed <seed> --regions <N> --max-y <Y> > results.txt
