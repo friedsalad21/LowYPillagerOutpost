@@ -19,7 +19,7 @@ now; keep outpost code in its own files so it can later merge into the swamp hut
 - Real run: seed -3767261087998042360, 2M x 2M blocks, max-y -40 -> 8 hits in 310 s
   (`results/`).
 
-## GUI: built (branch `feature/gui`), waiting for the owner's Windows test
+## GUI: built and merged (PR #1); test release v1.0.0-test, Windows test pending
 
 - C: `jni_bridge.c` exports `project.NativeOutpost.open/band/close/coreVersion` (26.2 fixed).
 - Java (`app/`): new `OutpostGui` (Single Seed + Seed List tabs), `OutpostSearch` (band loop,
