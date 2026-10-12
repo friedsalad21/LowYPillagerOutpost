@@ -7,7 +7,7 @@ For the next Claude session (on the owner's headless Ubuntu home server). Read t
 Tool that finds the lowest-spawning pillager outposts for a seed, **Minecraft 26.2 only**.
 Lowest = bottom of the outpost's full bounding box (lowest piece - 12). Separate tool for
 now; keep outpost code in its own files so it can later merge into the swamp hut finder
-(upstream https://github.com/M33Galaxy/LowYSwampHut, branch history kept).
+(upstream https://github.com/M33Galaxy/LowYSwampHut, history kept; this repo: github.com/friedsalad21/LowYPillagerOutpost, private).
 
 ## State: C core DONE and verified — do not redo
 
@@ -60,16 +60,16 @@ The oracle writes `run/oracle.txt` (candidates in regions -32..31; or the chunks
 
 ```bash
 sudo apt update
-sudo apt install -y git build-essential cmake ninja-build python3 openjdk-21-jdk mingw-w64 xvfb
+sudo apt install -y git gh build-essential cmake ninja-build python3 openjdk-21-jdk mingw-w64 xvfb
 # Java 25 is needed only for the oracle (Minecraft 26.2 dev server):
 sudo apt install -y openjdk-25-jdk   # if missing: use Adoptium Temurin 25
 ```
 
-Get the project (from the owner's Windows PC: `LowYPillagerOutpost.bundle`, see below):
+Get the project (private GitHub repo; needs `gh auth login` first):
 
 ```bash
-git clone LowYPillagerOutpost.bundle LowYPillagerOutpost
-cd LowYPillagerOutpost && git checkout pillager-outpost
+gh repo clone friedsalad21/LowYPillagerOutpost
+cd LowYPillagerOutpost
 cmake -S lysh-c -B lysh-c/build -G Ninja -DJAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 cmake --build lysh-c/build
 ./lysh-c/build/lysh outpost --seed -3767261087998042360 --regions 32 --max-y 40
