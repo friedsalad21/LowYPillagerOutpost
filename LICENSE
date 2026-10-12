@@ -46,6 +46,3 @@ taken from cubiomes (https://github.com/Cubitect/cubiomes), MIT License:
   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
-
-The GUI font (app/src/main/resources/font.ttf) is Jiangcheng Heiti, carried
-over from LowYSwampHut.

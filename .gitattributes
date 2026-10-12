@@ -13,6 +13,3 @@
 *.ttf  binary
 *.jar  binary
 *.exe  binary
-
-# 归档的 zip 在 diff/统计里不展开
-_archive/** -diff

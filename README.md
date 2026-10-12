@@ -146,7 +146,7 @@ C output was identical to it on 4096 candidates, 61 deep outposts and 200,000 bi
 
 | Path | What |
 |---|---|
-| `lysh-c/` | C core (CMake). `src/outpost.*` = outpost search; rest = terrain engine from LowYSwampHut |
+| `lysh-c/` | C core (CMake). `src/outpost.*` = outpost search; rest = terrain engine from LowYSwampHut (engine notes, in Chinese: `lysh-c/README.md`) |
 | `app/` | Java GUI + jar command line (`OutpostGui`, `OutpostSearch`, `NativeOutpost`) |
 | `tools/oracle-26.2/` | in-game ground truth (Fabric dev server mod) |
 | `tools/biome-tree/` | turns an oracle biome-tree dump into a C header |

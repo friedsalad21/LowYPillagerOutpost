@@ -267,7 +267,7 @@ if (-not $SkipCompile) {
     throw "-SkipCompile was given but $classes does not exist"
 }
 
-Write-Step "Copying resources (messages / icon / font)"
+Write-Step "Copying resources (messages / icon)"
 Copy-Item -Path (Join-Path $resDir '*') -Destination $classes -Recurse -Force
 Copy-Item -Path (Join-Path $workspace 'LICENSE') -Destination (Join-Path $classes 'LICENSE.txt') -Force
 
@@ -391,7 +391,7 @@ Requirements
 
 What is inside the jar
 ----------------------
-project/*.class, resources (messages, icon, font) and native/lysh.dll.
+project/*.class, resources (messages, icon) and native/lysh.dll.
 Every terrain / structure judgement is made by the C core, so there is no Mojang
 or SeedChecker code in here today.
 
