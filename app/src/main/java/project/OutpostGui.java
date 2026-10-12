@@ -42,7 +42,6 @@ public class OutpostGui extends JFrame {
 
     public static void main(String[] args) {
         AppLocale loc = AppLocale.load();
-        loadFont();
         SwingUtilities.invokeLater(() -> {
             OutpostGui gui = new OutpostGui(loc);
             gui.setVisible(true);
@@ -68,22 +67,6 @@ public class OutpostGui extends JFrame {
         setSize(1200, 720);
         setLocationRelativeTo(null);
         System.out.println(NativeOutpost.describe());
-    }
-
-    /** The bundled font covers Chinese; harmless for English. */
-    private static void loadFont() {
-        try (var in = OutpostGui.class.getResourceAsStream("/font.ttf")) {
-            if (in == null) return;
-            Font f = Font.createFont(Font.TRUETYPE_FONT, in).deriveFont(Font.PLAIN, 13f);
-            GraphicsEnvironment.getLocalGraphicsEnvironment().registerFont(f);
-            for (String k : new String[]{"Label", "Button", "TextField", "TextArea", "ComboBox", "TabbedPane",
-                    "ProgressBar", "ToolTip", "CheckBox", "List", "Table", "TableHeader", "Spinner",
-                    "FormattedTextField", "OptionPane.message", "OptionPane.button", "TitledBorder"}) {
-                UIManager.put(k.contains(".") ? k + "Font" : k + ".font", f);
-            }
-        } catch (Exception e) {
-            System.err.println("font: " + e);
-        }
     }
 
     // ------------------------------------------------------------------
