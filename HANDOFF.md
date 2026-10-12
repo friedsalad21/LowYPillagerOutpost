@@ -19,27 +19,20 @@ now; keep outpost code in its own files so it can later merge into the swamp hut
 - Real run: seed -3767261087998042360, 2M x 2M blocks, max-y -40 -> 8 hits in 310 s
   (`results/`).
 
-## The ONLY remaining task: the GUI
+## GUI: built (branch `feature/gui`), waiting for the owner's Windows test
 
-Convert `app/` (the old swamp-hut Swing GUI, Java 17, built by `app/build-dist.ps1` with plain
-javac + jar, C core embedded as `/native/lysh.dll`) into an outpost GUI:
-
-1. JNI: add a `project.NativeOutpost` class + exports in `lysh-c/src/jni_bridge.c` wrapping
-   `lysh_outpost_session_open / _band / _free` (outpost.h). Return hits as a flat int array
-   (ctr_x, bbox_min_y, ctr_z, piece_min_y, base_y). Follow the existing `NativePhase2.scanOpen/
-   scanBand/scanClose` pattern (same file) — bands give the progress bar.
-2. GUI (`app/src/main/java/project/LowYSwampHutForFixedSeed.java`, 3143 lines, + `CmdLineRunner`,
-   `GameVersion`, `messages_*.properties`): replace swamp wording/logic with outposts.
-   Inputs: seed, threads, max Y (bbox bottom; e.g. -40), area (regions or square side),
-   **no version picker (26.2 fixed)**. Output rows `/tp x y z` + lowest piece + base, sort by
-   Y / distance, export. Keep seed-list tab if cheap. Drop swamp-only bits.
-3. Rename product: jar `LowYPillagerOutpost-<ver>.jar`, window title, `AppVersion`.
-   `build-dist.ps1` still says LowYSwampHut in names — update. Native lib loader
-   (`NativePhase1`) only knows `lysh.dll`; on Linux it needs `liblysh.so`/`lysh.so` for testing.
-4. Build a Windows deliverable from Linux: cross-compile the DLL with mingw-w64
-   (`tools/jni-win32/jni_md.h` + the Linux JDK's `include/jni.h`), build the jar with javac,
-   embed the DLL. A Linux .so build lets you smoke-test the GUI under `xvfb-run`.
-5. The owner tests the GUI on Windows. Give them the jar path / how to copy it.
+- C: `jni_bridge.c` exports `project.NativeOutpost.open/band/close/coreVersion` (26.2 fixed).
+- Java (`app/`): new `OutpostGui` (Single Seed + Seed List tabs), `OutpostSearch` (band loop,
+  shared with the jar CLI), `NativeOutpost`, compact `CmdLineRunner`. The swamp-hut GUI/CLI
+  classes were removed (they live on upstream). `NativePhase1` is just the library loader now.
+- Build on Linux: `./build-dist.sh` -> `dist/LowYPillagerOutpost-<ver>.jar` with both
+  `native/lysh.dll` (mingw-w64 cross build, `lysh-c/mingw-w64.cmake`) and `native/lysh.so`,
+  plus `dist/lysh.exe` and `dist/run.bat`. `app/build-dist.ps1` / `build.bat` still work on Windows.
+- Tested on the server: jar results identical to the C CLI (regions 32, max-y 50: 26 hits);
+  GUI driven under `xvfb-run` (both tabs, pause/resume/stop). The Windows DLL can't be run here
+  (no Wine), so the Windows test is the owner's.
+- **The home server CPU is weak (i3, 4 threads): test with small areas only** (e.g. square side
+  64 regions, under a second). Big searches are for the owner's PC.
 
 Optional later (not requested): ~several-x speed-up by replacing the pre-check
 `lysh_phase2_density_at` (builds whole column caches) with a single-cell solid test, plus
@@ -72,15 +65,15 @@ gh repo clone friedsalad21/LowYPillagerOutpost
 cd LowYPillagerOutpost
 cmake -S lysh-c -B lysh-c/build -G Ninja -DJAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 cmake --build lysh-c/build
-./lysh-c/build/lysh outpost --seed -3767261087998042360 --regions 32 --max-y 40
+./lysh-c/build/lysh outpost --seed -3767261087998042360 --regions 32 --max-y 50
 ```
 
-Expected first lines of that last command (26.2): a handful of `/tp` lines; the regions-32
-dump must still give 134 OK / 385 biome / 306 excl / 3271 freq.
+Expected (26.2): 26 `/tp` lines, lowest `/tp 5304 46 -8456` (max-y 40 gives none in this small
+area). The regions-32 `--dump` must still give 134 OK / 385 biome / 306 excl / 3271 freq.
 
 ## Notes
 
-- the owner's prefs: lazy/minimal code, keep Windows user steps to copy-paste commands; the owner does
+- The owner's prefs: lazy/minimal code, keep Windows user steps to copy-paste commands; the owner does
   the in-game testing; use mcsrc.dev (or Vineflower locally) for Minecraft source.
 - Windows paths from the old PC (not on the server): `C:\CODE\LowYPillagerOutpost` (this repo),
   `C:\CODE\_mcdata` (scratch: decompiled 26.3 source, cubiomes tables), MSYS2 at `C:\msys64`.

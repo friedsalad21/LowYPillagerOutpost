@@ -313,3 +313,77 @@ Java_project_NativePhase2_coreVersion(JNIEnv *env, jclass cls) {
     (void)cls;
     return (*env)->NewStringUTF(env, "lysh 2.0.0 (phase1+phase2 end-to-end: exact footprint avg height + aquifer flood judgment)");
 }
+
+/* ---------------------------------------------------------------------------
+ * project.NativeOutpost —— 掠夺者前哨站（outpost.h 的会话接口），版本固定 26.2。
+ *   open(seed, threads)  -> 句柄（0 = 失败）
+ *   band(h, rx0, rx1, rz0, rz1, maxY, int[] hits)
+ *        -> long[8] = scanned, freq, village, prefilter, biome, y, ok, hitsWritten
+ *        hits：每条 5 个 int (ctr_x, bbox_min_y, ctr_z, piece_min_y, base_y)，最低的在前；
+ *        缓冲不够时只装最低的那些（ok > hitsWritten）。
+ *   close(h)
+ * ------------------------------------------------------------------------- */
+#include "outpost.h"
+
+#define LYSH_OP_JNI_INTS 5
+
+JNIEXPORT jlong JNICALL
+Java_project_NativeOutpost_open(JNIEnv *env, jclass cls, jlong seed, jint threads) {
+    (void)env; (void)cls;
+    return (jlong)(intptr_t)lysh_outpost_session_open((uint64_t)seed, LYSH_OP_V_26_2, threads);
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_project_NativeOutpost_band(JNIEnv *env, jclass cls, jlong handle,
+                                jint rx0, jint rx1, jint rz0, jint rz1,
+                                jint max_y, jintArray out_hits) {
+    (void)cls;
+    lysh_outpost_session *s = (lysh_outpost_session *)(intptr_t)handle;
+    if (!s) return NULL;
+
+    jsize cap = out_hits ? (*env)->GetArrayLength(env, out_hits) / LYSH_OP_JNI_INTS : 0;
+    lysh_outpost_scan_out out;
+    memset(&out, 0, sizeof(out));
+    if (cap > 0) {
+        out.hits = (lysh_outpost_result *)malloc((size_t)cap * sizeof(*out.hits));
+        if (out.hits) out.hits_cap = (int)cap;
+    }
+    lysh_outpost_session_band(s, rx0, rx1, rz0, rz1, max_y, &out);
+
+    if (out.hits_written > 0) {
+        jint *buf = (jint *)malloc((size_t)out.hits_written * LYSH_OP_JNI_INTS * sizeof(jint));
+        if (buf) {
+            for (int i = 0; i < out.hits_written; i++) {
+                const lysh_outpost_result *r = &out.hits[i];
+                jint *p = buf + i * LYSH_OP_JNI_INTS;
+                p[0] = r->ctr_x; p[1] = r->bbox_min_y; p[2] = r->ctr_z;
+                p[3] = r->piece_min_y; p[4] = r->base_y;
+            }
+            (*env)->SetIntArrayRegion(env, out_hits, 0, out.hits_written * LYSH_OP_JNI_INTS, buf);
+            free(buf);
+        } else {
+            out.hits_written = 0;
+        }
+    }
+    free(out.hits);
+
+    jlong hdr[8] = { out.scanned,
+                     out.counts[LYSH_OP_REJECT_FREQ], out.counts[LYSH_OP_REJECT_VILLAGE],
+                     out.counts[LYSH_OP_REJECT_PREFILTER], out.counts[LYSH_OP_REJECT_BIOME],
+                     out.counts[LYSH_OP_REJECT_Y], out.counts[LYSH_OP_OK], out.hits_written };
+    jlongArray a = (*env)->NewLongArray(env, 8);
+    if (a) (*env)->SetLongArrayRegion(env, a, 0, 8, hdr);
+    return a;
+}
+
+JNIEXPORT void JNICALL
+Java_project_NativeOutpost_close(JNIEnv *env, jclass cls, jlong handle) {
+    (void)env; (void)cls;
+    lysh_outpost_session_free((lysh_outpost_session *)(intptr_t)handle);
+}
+
+JNIEXPORT jstring JNICALL
+Java_project_NativeOutpost_coreVersion(JNIEnv *env, jclass cls) {
+    (void)cls;
+    return (*env)->NewStringUTF(env, "lysh outpost (Minecraft 26.2)");
+}

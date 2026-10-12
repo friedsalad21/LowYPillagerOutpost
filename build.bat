@@ -1,5 +1,5 @@
 @echo off
-REM Full product package: build lysh.dll (CMake/gcc) + LowYPillagerOutpost-<version>.jar (GUI rework pending) into dist\.
+REM Full product package: build lysh.dll (CMake/gcc) + LowYPillagerOutpost-<version>.jar into dist\.
 REM Double-click this file, or run it from a console at the repository root.
 setlocal
 cd /d "%~dp0"

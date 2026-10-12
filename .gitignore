@@ -8,6 +8,7 @@
 
 # 构建产物（CMake / MinGW；lysh.dll 与 lysh.exe 在这里重新生成）
 lysh-c/build/
+lysh-c/build-win/
 
 # 打包产物：dist\ 是发布目录，由 LowYSwampHut-main\build-dist.ps1 生成
 /dist/

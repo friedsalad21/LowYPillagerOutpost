@@ -454,6 +454,21 @@ static int cmd_hut(int argc, char **argv) {
  * Default: scan, print hits lowest first as `/tp x y z` with y = bounding-box bottom.
  * --dump: every candidate, single-threaded, oracle format (cx cz status [h ctr biome piece bbox]). */
 #include "outpost.h"
+#ifdef _WIN32
+#include <windows.h>
+static double wall_sec(void) {   /* Debian's mingw-w64 (msvcrt) has no timespec_get */
+    LARGE_INTEGER f, c;
+    QueryPerformanceFrequency(&f);
+    QueryPerformanceCounter(&c);
+    return (double)c.QuadPart / (double)f.QuadPart;
+}
+#else
+static double wall_sec(void) {
+    struct timespec t;
+    timespec_get(&t, TIME_UTC);
+    return (double)t.tv_sec + t.tv_nsec / 1e9;
+}
+#endif
 static int cmd_outpost(int argc, char **argv) {
     uint64_t seed = 0;
     int have_seed = 0, version = LYSH_OP_V_26_2, threads = 0, dump = 0, max_y = INT_MAX;
@@ -502,11 +517,9 @@ static int cmd_outpost(int argc, char **argv) {
     memset(&out, 0, sizeof(out));
     out.hits = hits;
     out.hits_cap = (int)(sizeof(hits) / sizeof(hits[0]));
-    struct timespec t0, t1;
-    timespec_get(&t0, TIME_UTC);
+    double t0 = wall_sec();
     lysh_outpost_session_band(s, rx0, rx1, rz0, rz1, max_y, &out);
-    timespec_get(&t1, TIME_UTC);
-    double sec = (double)(t1.tv_sec - t0.tv_sec) + (t1.tv_nsec - t0.tv_nsec) / 1e9;
+    double sec = wall_sec() - t0;
     lysh_outpost_session_free(s);
     for (int i = 0; i < out.hits_written; i++)
         printf("/tp %d %d %d   (lowest piece %d, base %d)\n", hits[i].ctr_x, hits[i].bbox_min_y, hits[i].ctr_z,
