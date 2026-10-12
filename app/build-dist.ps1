@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Build the self-contained, directly runnable LowYSwampHut GUI jar into ..\dist\.
+    Build the self-contained, directly runnable LowYPillagerOutpost GUI jar into ..\dist\.
 
 .DESCRIPTION
     Why this exists: the product used to be launchable only as
@@ -17,7 +17,7 @@
     Double-click build.bat at the repository root to run the full package.
 
     Output layout (one obvious thing to run), relative to the repository root:
-        dist\LowYSwampHut-<VERSION>.jar   product classes + resources + /native/lysh.dll
+        dist\LowYPillagerOutpost-<VERSION>.jar   product classes + resources + /native/lysh.dll
                                           (VERSION comes from project.AppVersion.VERSION)
         dist\lysh.dll                     the C core; also embedded in the jar (override only)
         dist\run.bat                      double-click launcher
@@ -40,7 +40,7 @@
     Reuse an existing lysh.dll instead of rebuilding the C core with CMake.
 
 .EXAMPLE
-    powershell -NoProfile -ExecutionPolicy Bypass -File LowYSwampHut-main\build-dist.ps1
+    powershell -NoProfile -ExecutionPolicy Bypass -File app\build-dist.ps1
 
 .EXAMPLE
     Double-click build.bat at the repository root (runs this script end-to-end).
@@ -53,7 +53,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$repo      = Split-Path -Parent $MyInvocation.MyCommand.Path          # LowYSwampHut-main
+$repo      = Split-Path -Parent $MyInvocation.MyCommand.Path          # app
 $workspace = Split-Path -Parent $repo                                # the repository root
 $srcDir    = Join-Path $repo 'src\main\java'
 $resDir    = Join-Path $repo 'src\main\resources'
@@ -215,7 +215,7 @@ $appVersion = $appVersionMatch.Matches[0].Groups[1].Value
 if ($appVersion -notmatch '^[0-9A-Za-z][0-9A-Za-z._+-]*$') {
     throw "Refusing unsafe AppVersion.VERSION value: $appVersion"
 }
-$jarName = "LowYSwampHut-$appVersion.jar"
+$jarName = "LowYPillagerOutpost-$appVersion.jar"
 $jarPath = Join-Path $distDir $jarName
 Write-Step "Product version $appVersion -> $jarName"
 
@@ -299,7 +299,7 @@ Write-Host "    embedded : $dll"
 Write-Step "Packaging -> $jarPath"
 if (-not (Test-Path $distDir)) { New-Item -ItemType Directory -Force -Path $distDir | Out-Null }
 # Remove previous product jars so dist\ never accumulates stale versioned builds.
-Get-ChildItem -Path $distDir -Filter 'LowYSwampHut*.jar' -File -ErrorAction SilentlyContinue |
+Get-ChildItem -Path $distDir -Filter 'LowYPillagerOutpost*.jar' -File -ErrorAction SilentlyContinue |
     Remove-Item -Force
 $jarLog = Join-Path $buildRoot 'jar.log'
 Invoke-Native { jar --create --file $jarPath --manifest $manifest -C $classes . 2>&1 |
@@ -316,7 +316,7 @@ Write-Host "    beside jar: $(Join-Path $distDir 'lysh.dll')"
 Write-Step "Writing dist\run.bat and dist\README.txt"
 $runBat = @"
 @echo off
-REM LowYSwampHut GUI launcher (double-click friendly).
+REM LowYPillagerOutpost GUI launcher (double-click friendly).
 REM
 REM   run.bat                       -> opens the Swing GUI
 REM   run.bat --seed 123 -o out.txt -> command line search (arguments forwarded)
@@ -332,7 +332,7 @@ set "JAR=%HERE%$jarName"
 if not exist "%JAR%" (
     echo Missing "%JAR%".
     echo Build it first:
-    echo   powershell -NoProfile -ExecutionPolicy Bypass -File "%HERE%..\LowYSwampHut-main\build-dist.ps1"
+    echo   powershell -NoProfile -ExecutionPolicy Bypass -File "%HERE%..\app\build-dist.ps1"
     pause
     exit /b 1
 )
@@ -342,13 +342,13 @@ set "EXIT_CODE=%ERRORLEVEL%"
 popd
 if not "%EXIT_CODE%"=="0" (
     echo.
-    echo LowYSwampHut exited with code %EXIT_CODE%.
+    echo LowYPillagerOutpost exited with code %EXIT_CODE%.
     pause
 )
 endlocal & exit /b %EXIT_CODE%
 "@
 $readme = @"
-LowYSwampHut $appVersion - one self-contained jar
+LowYPillagerOutpost $appVersion - one self-contained jar
 =====================================
 
 Run it
@@ -363,9 +363,9 @@ still runs.
 
 The C core
 ----------
-The x86-64 Windows core (phase 1 + phase 2) travels INSIDE the jar at
+The x86-64 Windows core (outpost search) travels INSIDE the jar at
 /native/lysh.dll. On first run project.NativePhase1 releases it to
-  %LOCALAPPDATA%\LowYSwampHut\native\<sha256-16>\lysh.dll
+  %LOCALAPPDATA%\LowYPillagerOutpost\native\<sha256-16>\lysh.dll
 and loads it from there. That directory is keyed by the file's SHA-256, so
 upgrading the jar never picks up an older core, and later runs reuse the copy
 that is already there.
@@ -374,7 +374,7 @@ A loose lysh.dll in this folder is an OVERRIDE: if present it wins over the
 embedded one. Delete it to fall back to the embedded core.
 
 Search order (first hit wins)
-  1. -Dlowyswamphut.nativeLib=<path>
+  1. -Dlowypillageroutpost.nativeLib=<path>
   2. LYSH_NATIVE_LIB=<path>
   3. <cwd>\lysh-c\build\cmake\lysh.dll    (developer build)
   4. <jar folder>\lysh.dll  /  <jar folder>\native\lysh.dll
@@ -401,7 +401,7 @@ Product version
 
 Rebuild
 -------
-  powershell -NoProfile -ExecutionPolicy Bypass -File ..\LowYSwampHut-main\build-dist.ps1
+  powershell -NoProfile -ExecutionPolicy Bypass -File ..\app\build-dist.ps1
 "@
 [System.IO.File]::WriteAllText((Join-Path $distDir 'run.bat'), ($runBat -replace "`r?`n", "`r`n"), (New-Object System.Text.ASCIIEncoding))
 [System.IO.File]::WriteAllText((Join-Path $distDir 'README.txt'), ($readme -replace "`r?`n", "`r`n"), (New-Object System.Text.ASCIIEncoding))

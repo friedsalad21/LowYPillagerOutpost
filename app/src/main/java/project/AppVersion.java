@@ -2,11 +2,11 @@ package project;
 
 /**
  * 版本号（与 C 内核 lysh、窗口标题、打包 jar 名共用）。
- * {@code build-dist.ps1} 解析本常量，生成 {@code LowYSwampHut-<VERSION>.jar}。
+ * {@code build-dist.ps1} 解析本常量，生成 {@code LowYPillagerOutpost-<VERSION>.jar}。
  */
 public final class AppVersion {
 
-    public static final String VERSION = "2.0.1";
+    public static final String VERSION = "1.0.0";
 
     private AppVersion() {
     }

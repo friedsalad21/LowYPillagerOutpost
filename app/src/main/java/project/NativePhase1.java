@@ -14,13 +14,13 @@ import java.util.Locale;
  * C 内核（{@code lysh.dll}）的加载器 + 版本探针。
  *
  * <p>这一层**不含任何判定逻辑**，现在也不再暴露阶段 1 的扫描入口：产品只走
- * {@link NativePhase2#gradeScanNative}（阶段 1 + 阶段 2 一趟跑完），
+ * {@link NativeOutpost}（前哨站搜索），
  * 历史上那个阶段 1-only 的 `scanNative` 没有任何调用方，已删除。
  * 本类剩下的唯一 native 方法是 {@code coreVersion()}，用来确认库已加载以及版本。
  *
  * <p>加载顺序（第一个成功者胜出）：
  * <ol>
- *   <li>系统属性 {@code -Dlowyswamphut.nativeLib=<path to lysh.dll>}</li>
+ *   <li>系统属性 {@code -Dlowypillageroutpost.nativeLib=<path to lysh.dll>}</li>
  *   <li>环境变量 {@code LYSH_NATIVE_LIB}</li>
  *   <li>工作目录下的 {@code lysh-c/build/cmake/lysh.dll}</li>
  *   <li>{@code build/cmake/lysh.dll}（以 lysh-c 为工作目录时）</li>
@@ -38,14 +38,14 @@ import java.util.Locale;
  * 所以这里**绝不抛异常**、只记录原因，由调用方（{@code CmdLineRunner} / GUI 的
  * {@code main}）判定"缺库 = 不能搜索"并明确报错。{@link #describe()} 输出的就是那句话。
  *
- * <p>阶段 2 的桥（{@link NativePhase2}）**复用本类的加载结果**：同一份 {@code lysh.dll}
+ * <p>前哨站搜索（{@link NativeOutpost}）**复用本类的加载结果**：同一份 {@code lysh.dll}
  * 里同时导出两个 Java 类的 native 方法，所以 {@link #loadLibrary()} 是包级可见的，
- * 供 {@code NativePhase2} 调用，避免两处各抄一份查找顺序。
+ * 供其它 native 类复用，避免两处各抄一份查找顺序。
  */
 public final class NativePhase1 {
 
     private static final boolean ENABLED =
-            !"false".equalsIgnoreCase(System.getProperty("lowyswamphut.nativePhase1", "true"));
+            !"false".equalsIgnoreCase(System.getProperty("lowypillageroutpost.nativePhase1", "true"));
 
     private static final boolean AVAILABLE;
     private static final String STATUS;
@@ -56,7 +56,7 @@ public final class NativePhase1 {
         String status;
         String version = null;
         if (!ENABLED) {
-            status = "disabled by -Dlowyswamphut.nativePhase1=false";
+            status = "disabled by -Dlowypillageroutpost.nativePhase1=false";
         } else {
             String loaded = loadLibrary();
             if (loaded != null) {
@@ -78,7 +78,7 @@ public final class NativePhase1 {
     /**
      * 按既定顺序加载 {@code lysh.dll}，返回实际加载的路径（都失败则返回 {@code null}）。
      *
-     * <p>包级可见：{@link NativePhase2} 用它来加载**同一份**库。
+     * <p>包级可见：其它 native 类用它来加载**同一份**库。
      * JNI 的 native 方法与类名绑定，同一个库只能被同一个 ClassLoader 加载一次，
      * 所以调用方必须先检查 {@link #isAvailable()}，不要重复加载。
      */
@@ -126,13 +126,14 @@ public final class NativePhase1 {
 
     private static List<String> candidates() {
         List<String> out = new ArrayList<>();
-        String prop = System.getProperty("lowyswamphut.nativeLib");
+        String prop = System.getProperty("lowypillageroutpost.nativeLib");
         if (prop != null && !prop.isEmpty()) out.add(prop);
         String env = System.getenv("LYSH_NATIVE_LIB");
         if (env != null && !env.isEmpty()) out.add(env);
 
         String lib = libFileName();
         out.add(Paths.get("lysh-c", "build", "cmake", lib).toAbsolutePath().toString());
+        out.add(Paths.get("lysh-c", "build", lib).toAbsolutePath().toString());
         out.add(Paths.get("build", "cmake", lib).toAbsolutePath().toString());
 
         // jar / classes 目录旁边
@@ -235,15 +236,15 @@ public final class NativePhase1 {
         String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
         String base = os.contains("win") ? System.getenv("LOCALAPPDATA") : null;
         if (base != null && !base.isEmpty()) {
-            roots.add(Paths.get(base, "LowYSwampHut", "native"));
+            roots.add(Paths.get(base, "LowYPillagerOutpost", "native"));
         }
         String home = System.getProperty("user.home");
         if (home != null && !home.isEmpty()) {
-            roots.add(Paths.get(home, ".cache", "LowYSwampHut", "native"));
+            roots.add(Paths.get(home, ".cache", "LowYPillagerOutpost", "native"));
         }
         String tmp = System.getProperty("java.io.tmpdir");
         if (tmp != null && !tmp.isEmpty()) {
-            roots.add(Paths.get(tmp, "lowyswamphut-native"));
+            roots.add(Paths.get(tmp, "lowypillageroutpost-native"));
         }
         for (Path p : roots) {
             try {
@@ -270,8 +271,9 @@ public final class NativePhase1 {
     private static String libFileName() {
         String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
         if (os.contains("win")) return "lysh.dll";
-        if (os.contains("mac")) return "liblysh.dylib";
-        return "liblysh.so";
+        // CMake builds lysh_jni with PREFIX "" -> lysh.so / lysh.dylib
+        if (os.contains("mac")) return "lysh.dylib";
+        return "lysh.so";
     }
 
     // ------------------------------------------------------------------

@@ -16,7 +16,25 @@ structure piece. The lowest piece is either the base plate (one block below the 
 outpost centre) or one of the three terrain-following side plates (surface height where each
 plate attaches), whichever is lower.
 
-## Run a search (command line)
+## Run a search (GUI)
+
+Needs Java 17 or newer. Double-click `LowYPillagerOutpost-<version>.jar` (or
+`java -jar LowYPillagerOutpost-<version>.jar`). The C core is inside the jar (Windows x64 and
+Linux x64).
+
+- **Single Seed**: seed (number or text), threads, max Y (bounding-box bottom), and the area as
+  a square side or a MinX/MaxX/MinZ/MaxZ rectangle in regions (512 blocks; bounds inclusive).
+  Default area is 3908 x 3908 regions = 2M x 2M blocks.
+- **Seed List**: same, for every seed in a text file (one per line, `#` = comment).
+- Results: sort by Y or distance (or click a column header), double-click a row to copy the
+  `/tp`, export to a text file. Pause / Stop work between bands.
+
+The jar also has a command-line mode: `java -jar LowYPillagerOutpost-<version>.jar --help`.
+
+Build the jar: `./build-dist.sh` on Linux (cross-compiles the Windows DLL with mingw-w64), or
+`build.bat` on Windows (MSYS2 gcc). Output goes to `dist/`.
+
+## Run a search (C command line)
 
 Build once (see `HANDOFF.md` for Linux / Windows build commands), then:
 
@@ -67,7 +85,7 @@ C output was identical to it on 4096 candidates, 61 deep outposts and 200,000 bi
 | Path | What |
 |---|---|
 | `lysh-c/` | C core (CMake). `src/outpost.*` = outpost search; rest = terrain engine from LowYSwampHut |
-| `app/` | Java GUI — still the swamp-hut GUI, **to be converted** (see `HANDOFF.md`) |
+| `app/` | Java GUI + jar command line (`OutpostGui`, `OutpostSearch`, `NativeOutpost`) |
 | `tools/oracle-26.2/` | in-game ground truth (Fabric dev server mod) |
 | `tools/biome-tree/` | turns an oracle biome-tree dump into a C header |
 | `tools/jni-win32/` | `jni_md.h` for cross-compiling the Windows DLL from Linux |

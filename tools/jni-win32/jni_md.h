@@ -30,6 +30,7 @@
   #define JNIEXPORT __declspec(dllexport)
 #endif
 #define JNIIMPORT __declspec(dllimport)
+#define JNICALL __stdcall
 
 typedef int jint;
 typedef long long jlong;
