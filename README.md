@@ -1,5 +1,10 @@
 # LowYPillagerOutpost
 
+## ⬇️ [Download LowYPillagerOutpost-1.0.0.jar](https://github.com/friedsalad21/LowYPillagerOutpost/releases/download/v1.0.0-test/LowYPillagerOutpost-1.0.0.jar)
+
+Needs Java 17+ ([how to install](#2-install-java)). Then double-click the jar.
+All versions: [Releases page](https://github.com/friedsalad21/LowYPillagerOutpost/releases).
+
 Finds the **lowest-spawning pillager outposts** in a Minecraft Java world seed (target
 version **26.2**). Forked from [M33Galaxy/LowYSwampHut](https://github.com/M33Galaxy/LowYSwampHut)
 (MIT); the swamp-hut terrain engine (`lysh-c`) is reused, the outpost logic is new and kept in
@@ -20,11 +25,15 @@ plate attaches), whichever is lower.
 
 ### To run it
 
-**1. Get the jar.** On this repo's
+#### 1. Get the jar
+
+ On this repo's
 [Releases page](https://github.com/friedsalad21/LowYPillagerOutpost/releases), open the newest
 release and download `LowYPillagerOutpost-<version>.jar` under **Assets**.
 
-**2. Install Java 17 or newer** (free). If you already have it, skip this: type `java -version`
+#### 2. Install Java
+
+**Java 17 or newer** (free). If you already have it, skip this: type `java -version`
 in Command Prompt / a terminal, and any number 17 or higher is fine. The Java that comes with
 the Minecraft launcher does **not** count.
 
@@ -42,7 +51,9 @@ Or in Command Prompt: `winget install EclipseAdoptium.Temurin.21.JRE`
 - Fedora: `sudo dnf install java-21-openjdk`
 - Arch: `sudo pacman -S jre21-openjdk`
 
-**3. Run it.** Double-click the jar. If that opens it like a zip file or nothing happens, run
+#### 3. Run it
+
+ Double-click the jar. If that opens it like a zip file or nothing happens, run
 `java -jar LowYPillagerOutpost-<version>.jar` in the folder where the jar is.
 
 **System requirements:** 64-bit Windows or Linux (no macOS, no ARM), a CPU with AVX2 (any
