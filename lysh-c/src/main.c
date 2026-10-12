@@ -456,7 +456,7 @@ static int cmd_hut(int argc, char **argv) {
 #include "outpost.h"
 static int cmd_outpost(int argc, char **argv) {
     uint64_t seed = 0;
-    int have_seed = 0, version = LYSH_OP_V_26_3, threads = 0, dump = 0, max_y = INT_MAX;
+    int have_seed = 0, version = LYSH_OP_V_26_2, threads = 0, dump = 0, max_y = INT_MAX;
     int rx0 = INT_MIN, rx1 = INT_MIN, rz0 = INT_MIN, rz1 = INT_MIN;
     for (int i = 0; i < argc; i++) {
         const char *a = argv[i];
@@ -521,7 +521,7 @@ static int cmd_outpost(int argc, char **argv) {
 /* lysh biomes --seed S [--version V] < "x y z" lines  ->  "x y z id" (cubiomes ids; oracle diffs) */
 static int cmd_biomes(int argc, char **argv) {
     uint64_t seed = 0;
-    int version = LYSH_OP_V_26_3;
+    int version = LYSH_OP_V_26_2;
     for (int i = 0; i + 1 < argc; i += 2) {
         if (!strcmp(argv[i], "--seed")) seed = strtoull(argv[i + 1], NULL, 10);
         else if (!strcmp(argv[i], "--version")) version = lysh_outpost_version_parse(argv[i + 1]);
